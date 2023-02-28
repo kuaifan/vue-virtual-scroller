@@ -205,8 +205,8 @@ export default {
       this.$emit('visible')
     },
 
-    onScrollerScroll () {
-      this.$emit('scroll')
+    onScrollerScroll (event) {
+      this.$emit('scroll', event)
     },
 
     forceUpdate (clear = true) {

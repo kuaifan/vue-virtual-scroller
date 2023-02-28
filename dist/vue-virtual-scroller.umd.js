@@ -500,6 +500,10 @@
     itemTag: {
       type: String,
       default: 'div'
+    },
+    disabled: {
+      type: Boolean,
+      default: false
     }
   };
   function simpleArray() {
@@ -590,10 +594,6 @@
       itemClass: {
         type: [String, Object, Array],
         default: ''
-      },
-      disabled: {
-        type: Boolean,
-        default: false
       }
     },
     data() {
@@ -1533,6 +1533,9 @@
         });
         this.$emit('visible');
       },
+      onScrollerScroll() {
+        this.$emit('scroll');
+      },
       forceUpdate(clear = true) {
         if (clear || this.simpleArray) {
           this.vscrollData.validSizes = {};
@@ -1541,9 +1544,17 @@
           force: true
         });
       },
+      getItemPosition(index) {
+        const scroller = this.$refs.scroller;
+        if (scroller) scroller.getItemPosition(index);
+      },
       scrollToItem(index) {
         const scroller = this.$refs.scroller;
         if (scroller) scroller.scrollToItem(index);
+      },
+      scrollToPosition(position) {
+        const scroller = this.$refs.scroller;
+        if (scroller) scroller.scrollToPosition(position);
       },
       getItemSize(item, index = undefined) {
         const id = this.simpleArray ? index != null ? index : this.items.indexOf(item) : item[this.keyField];
@@ -1592,11 +1603,16 @@
               items: _vm.itemsWithSize,
               "min-item-size": _vm.minItemSize,
               direction: _vm.direction,
+              disabled: _vm.disabled,
               "key-field": "id",
               "list-tag": _vm.listTag,
               "item-tag": _vm.itemTag,
             },
-            on: { resize: _vm.onScrollerResize, visible: _vm.onScrollerVisible },
+            on: {
+              resize: _vm.onScrollerResize,
+              visible: _vm.onScrollerVisible,
+              scroll: _vm.onScrollerScroll,
+            },
             scopedSlots: _vm._u(
               [
                 {

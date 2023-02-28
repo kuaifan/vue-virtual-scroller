@@ -4,12 +4,14 @@
     :items="itemsWithSize"
     :min-item-size="minItemSize"
     :direction="direction"
+    :disabled="disabled"
     key-field="id"
     :list-tag="listTag"
     :item-tag="itemTag"
     v-bind="$attrs"
     @resize="onScrollerResize"
     @visible="onScrollerVisible"
+    @scroll="onScrollerScroll"
     v-on="listeners"
   >
     <template slot-scope="{ item: itemWithSize, index, active }">
@@ -203,6 +205,10 @@ export default {
       this.$emit('visible')
     },
 
+    onScrollerScroll () {
+      this.$emit('scroll')
+    },
+
     forceUpdate (clear = true) {
       if (clear || this.simpleArray) {
         this.vscrollData.validSizes = {}
@@ -210,9 +216,19 @@ export default {
       this.$emit('vscroll:update', { force: true })
     },
 
+    getItemPosition (index) {
+      const scroller = this.$refs.scroller
+      if (scroller) scroller.getItemPosition(index)
+    },
+
     scrollToItem (index) {
       const scroller = this.$refs.scroller
       if (scroller) scroller.scrollToItem(index)
+    },
+
+    scrollToPosition (position) {
+      const scroller = this.$refs.scroller
+      if (scroller) scroller.scrollToPosition(position)
     },
 
     getItemSize (item, index = undefined) {

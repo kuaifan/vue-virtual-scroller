@@ -172,11 +172,6 @@ export default {
       type: [String, Object, Array],
       default: '',
     },
-
-    disabled: {
-      type: Boolean,
-      default: false
-    },
   },
 
   data () {

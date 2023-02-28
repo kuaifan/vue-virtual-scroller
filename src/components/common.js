@@ -24,6 +24,11 @@ export const props = {
     type: String,
     default: 'div',
   },
+
+  disabled: {
+    type: Boolean,
+    default: false
+  },
 }
 
 export function simpleArray () {

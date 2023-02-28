@@ -7,6 +7,7 @@
       'page-mode': pageMode,
       [`direction-${direction}`]: true,
     }"
+    :style="scrollerStyle"
     @scroll.passive="handleScroll"
   >
     <div
@@ -171,6 +172,11 @@ export default {
       type: [String, Object, Array],
       default: '',
     },
+
+    disabled: {
+      type: Boolean,
+      default: false
+    },
   },
 
   data () {
@@ -210,6 +216,16 @@ export default {
     },
 
     simpleArray,
+
+    scrollerStyle () {
+      if (this.disabled) {
+        return {
+          overflow: 'hidden',
+        }
+      } else {
+        return null
+      }
+    },
   },
 
   watch: {
@@ -324,6 +340,9 @@ export default {
     },
 
     handleScroll (event) {
+      if (this.disabled) {
+        return
+      }
       if (!this.$_scrollDirty) {
         this.$_scrollDirty = true
         requestAnimationFrame(() => {
@@ -338,6 +357,7 @@ export default {
           }
         })
       }
+      this.$emit('scroll', event)
     },
 
     handleVisibilityChange (isVisible, entry) {
@@ -669,6 +689,31 @@ export default {
       this.listenerTarget.removeEventListener('resize', this.handleResize)
 
       this.listenerTarget = null
+    },
+
+    getItemPosition(index) {
+      let scroll
+      if (this.itemSize === null) {
+        scroll = index > 0 ? this.sizes[index - 1].accumulator : 0
+      } else {
+        scroll = Math.floor(index / this.gridItems) * this.itemSize
+      }
+      if (this.pageMode) {
+        const direction = this.direction === 'vertical'
+          ? { scroll: 'scrollTop', start: 'top' }
+          : { scroll: 'scrollLeft', start: 'left' }
+
+        const viewportEl = ScrollParent(this.$el)
+        // HTML doesn't overflow like other elements
+        const scrollTop = viewportEl.tagName === 'HTML' ? 0 : viewportEl[direction.scroll]
+        const bounds = viewportEl.getBoundingClientRect()
+
+        const scroller = this.$el.getBoundingClientRect()
+        const scrollerPosition = scroller[direction.start] - bounds[direction.start]
+
+        return scroll + scrollTop + scrollerPosition
+      }
+      return scroll
     },
 
     scrollToItem (index) {

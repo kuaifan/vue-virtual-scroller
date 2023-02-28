@@ -1074,7 +1074,10 @@ var script$1 = {
     },
     getItemPosition(index) {
       const scroller = this.$refs.scroller;
-      if (scroller) scroller.getItemPosition(index);
+      if (scroller) {
+        return scroller.getItemPosition(index);
+      }
+      return 0;
     },
     scrollToItem(index) {
       const scroller = this.$refs.scroller;

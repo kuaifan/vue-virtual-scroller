@@ -268,7 +268,7 @@ export default {
       })
     },
 
-    pauseScrollInsert () {
+    pauseScrollInsert (asynch) {
       return new Promise(resolve => {
         const {scroller} = this.$refs
         //
@@ -285,16 +285,23 @@ export default {
         const beforeLength = this.items.length
         const keyValue = index < beforeLength ? this.items[index][this.keyField] : null
         //
-        resolve()
+        const result = _ => {
+          requestAnimationFrame(_ => {
+            if (keyValue) {
+              index = this.items.findIndex(item => item[this.keyField] === keyValue) - 1
+            } else {
+              index += this.items.length - beforeLength
+            }
+            scroller.scrollToPosition(scroller.getItemPosition(Math.max(0, index)) + diff)
+          })
+        }
         //
-        requestAnimationFrame(_ => {
-          if (keyValue) {
-            index = this.items.findIndex(item => item[this.keyField] === keyValue) - 1
-          } else {
-            index += this.items.length - beforeLength
-          }
-          scroller.scrollToPosition(scroller.getItemPosition(Math.max(0, index)) + diff)
-        })
+        if (asynch) {
+          resolve(result)
+        } else {
+          resolve()
+          result()
+        }
       })
     }
   },

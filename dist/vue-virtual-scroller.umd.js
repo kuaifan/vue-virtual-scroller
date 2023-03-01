@@ -1065,31 +1065,6 @@
         this.listenerTarget.removeEventListener('resize', this.handleResize);
         this.listenerTarget = null;
       },
-      getItemPosition(index) {
-        let scroll;
-        if (this.itemSize === null) {
-          scroll = index > 0 ? this.sizes[index - 1].accumulator : 0;
-        } else {
-          scroll = Math.floor(index / this.gridItems) * this.itemSize;
-        }
-        if (this.pageMode) {
-          const direction = this.direction === 'vertical' ? {
-            scroll: 'scrollTop',
-            start: 'top'
-          } : {
-            scroll: 'scrollLeft',
-            start: 'left'
-          };
-          const viewportEl = scrollparent(this.$el);
-          // HTML doesn't overflow like other elements
-          const scrollTop = viewportEl.tagName === 'HTML' ? 0 : viewportEl[direction.scroll];
-          const bounds = viewportEl.getBoundingClientRect();
-          const scroller = this.$el.getBoundingClientRect();
-          const scrollerPosition = scroller[direction.start] - bounds[direction.start];
-          return scroll + scrollTop + scrollerPosition;
-        }
-        return scroll;
-      },
       scrollToItem(index) {
         let scroll;
         if (this.itemSize === null) {
@@ -1127,6 +1102,89 @@
         }
         viewport[scrollDirection] = scrollDistance;
       },
+      getItemPosition(index) {
+        let scroll;
+        if (this.itemSize === null) {
+          scroll = index > 0 ? this.sizes[index - 1].accumulator : 0;
+        } else {
+          scroll = Math.floor(index / this.gridItems) * this.itemSize;
+        }
+        if (this.pageMode) {
+          const direction = this.direction === 'vertical' ? {
+            scroll: 'scrollTop',
+            start: 'top'
+          } : {
+            scroll: 'scrollLeft',
+            start: 'left'
+          };
+          const viewportEl = scrollparent(this.$el);
+          // HTML doesn't overflow like other elements
+          const scrollTop = viewportEl.tagName === 'HTML' ? 0 : viewportEl[direction.scroll];
+          const bounds = viewportEl.getBoundingClientRect();
+          const scroller = this.$el.getBoundingClientRect();
+          const scrollerPosition = scroller[direction.start] - bounds[direction.start];
+          return scroll + scrollTop + scrollerPosition;
+        }
+        return scroll;
+      },
+      getItemSize(index) {
+        let size;
+        if (this.itemSize === null) {
+          size = index > 0 ? this.sizes[index - 1].size : 0;
+        } else {
+          size = this.itemSize;
+        }
+        return size;
+      },
+      // return current scroll offset
+      getOffset() {
+        const key = this.direction === 'horizontal' ? 'scrollLeft' : 'scrollTop';
+        if (this.pageMode) {
+          return document.documentElement[key] || document.body[key];
+        } else {
+          const {
+            root
+          } = this.$refs;
+          return root ? Math.ceil(root[key]) : 0;
+        }
+      },
+      // return client viewport size
+      getClientSize() {
+        const key = this.direction === 'horizontal' ? 'clientWidth' : 'clientHeight';
+        if (this.pageMode) {
+          return document.documentElement[key] || document.body[key];
+        } else {
+          const {
+            root
+          } = this.$refs;
+          return root ? Math.ceil(root[key]) : 0;
+        }
+      },
+      // return all scroll size
+      getScrollSize() {
+        const key = this.direction === 'horizontal' ? 'scrollWidth' : 'scrollHeight';
+        if (this.pageMode) {
+          return document.documentElement[key] || document.body[key];
+        } else {
+          const {
+            root
+          } = this.$refs;
+          return root ? Math.ceil(root[key]) : 0;
+        }
+      },
+      scrollInfo() {
+        const clientSize = this.getClientSize();
+        const offset = this.getOffset();
+        const scrollSize = this.getScrollSize();
+        return {
+          offset,
+          // 滚动的距离
+          scale: offset ? offset / (scrollSize - clientSize) : 0,
+          // 已滚动比例
+          tail: scrollSize - clientSize - offset // 与底部距离
+        };
+      },
+
       itemsLimitError() {
         setTimeout(() => {
           console.log('It seems the scroller element isn\'t scrolling, so it tries to render all the items at once.', 'Scroller:', this.$el);
@@ -1234,6 +1292,7 @@
             expression: "handleVisibilityChange",
           },
         ],
+        ref: "root",
         staticClass: "vue-recycle-scroller",
         class:
           ((_obj = {
@@ -1521,8 +1580,7 @@
     },
     methods: {
       onScrollerResize() {
-        const scroller = this.$refs.scroller;
-        if (scroller) {
+        if (this.$refs.scroller) {
           this.forceUpdate();
         }
         this.$emit('resize');
@@ -1544,24 +1602,29 @@
           force: true
         });
       },
-      getItemPosition(index) {
-        const scroller = this.$refs.scroller;
-        if (scroller) {
-          return scroller.getItemPosition(index);
-        }
-        return 0;
-      },
       scrollToItem(index) {
-        const scroller = this.$refs.scroller;
-        if (scroller) scroller.scrollToItem(index);
+        this.$refs.scroller.scrollToItem(index);
       },
       scrollToPosition(position) {
-        const scroller = this.$refs.scroller;
-        if (scroller) scroller.scrollToPosition(position);
+        this.$refs.scroller.scrollToPosition(position);
       },
-      getItemSize(item, index = undefined) {
-        const id = this.simpleArray ? index != null ? index : this.items.indexOf(item) : item[this.keyField];
-        return this.vscrollData.sizes[id] || 0;
+      getItemPosition(index) {
+        return this.$refs.scroller.getItemPosition(index);
+      },
+      getOffset() {
+        return this.$refs.scroller.getOffset();
+      },
+      getClientSize() {
+        return this.$refs.scroller.getClientSize();
+      },
+      getScrollSize() {
+        return this.$refs.scroller.getScrollSize();
+      },
+      scrollInfo() {
+        return this.$refs.scroller.scrollInfo();
+      },
+      getItemSize(index) {
+        return this.$refs.scroller.getItemSize(index);
       },
       scrollToBottom() {
         if (this.$_scrollingToBottom) return;
@@ -1583,6 +1646,37 @@
             });
           };
           requestAnimationFrame(cb);
+        });
+      },
+      pauseScrollInsert() {
+        return new Promise(resolve => {
+          const {
+            scroller
+          } = this.$refs;
+          //
+          let index = scroller.$_startIndex || 0;
+          let diff = 0;
+          while (diff >= 0) {
+            let tmp = scroller.getOffset() - scroller.getItemPosition(index);
+            if (diff === tmp) {
+              break;
+            }
+            diff = tmp;
+            index++;
+          }
+          const beforeLength = this.items.length;
+          const keyValue = index < beforeLength ? this.items[index][this.keyField] : null;
+          //
+          resolve();
+          //
+          requestAnimationFrame(_ => {
+            if (keyValue) {
+              index = this.items.findIndex(item => item[this.keyField] === keyValue) - 1;
+            } else {
+              index += this.items.length - beforeLength;
+            }
+            scroller.scrollToPosition(scroller.getItemPosition(Math.max(0, index)) + diff);
+          });
         });
       }
     }
@@ -1606,16 +1700,11 @@
               items: _vm.itemsWithSize,
               "min-item-size": _vm.minItemSize,
               direction: _vm.direction,
-              disabled: _vm.disabled,
               "key-field": "id",
               "list-tag": _vm.listTag,
               "item-tag": _vm.itemTag,
             },
-            on: {
-              resize: _vm.onScrollerResize,
-              visible: _vm.onScrollerVisible,
-              scroll: _vm.onScrollerScroll,
-            },
+            on: { resize: _vm.onScrollerResize, visible: _vm.onScrollerVisible },
             scopedSlots: _vm._u(
               [
                 {

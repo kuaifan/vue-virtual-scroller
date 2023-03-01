@@ -4,14 +4,12 @@
     :items="itemsWithSize"
     :min-item-size="minItemSize"
     :direction="direction"
-    :disabled="disabled"
     key-field="id"
     :list-tag="listTag"
     :item-tag="itemTag"
     v-bind="$attrs"
     @resize="onScrollerResize"
     @visible="onScrollerVisible"
-    @scroll="onScrollerScroll"
     v-on="listeners"
   >
     <template slot-scope="{ item: itemWithSize, index, active }">
@@ -193,8 +191,7 @@ export default {
 
   methods: {
     onScrollerResize () {
-      const scroller = this.$refs.scroller
-      if (scroller) {
+      if (this.$refs.scroller) {
         this.forceUpdate()
       }
       this.$emit('resize')
@@ -216,27 +213,36 @@ export default {
       this.$emit('vscroll:update', { force: true })
     },
 
-    getItemPosition (index) {
-      const scroller = this.$refs.scroller
-      if (scroller) {
-        return scroller.getItemPosition(index)
-      }
-      return 0
-    },
-
     scrollToItem (index) {
-      const scroller = this.$refs.scroller
-      if (scroller) scroller.scrollToItem(index)
+      this.$refs.scroller.scrollToItem(index)
     },
 
     scrollToPosition (position) {
-      const scroller = this.$refs.scroller
-      if (scroller) scroller.scrollToPosition(position)
+      this.$refs.scroller.scrollToPosition(position)
     },
 
-    getItemSize (item, index = undefined) {
-      const id = this.simpleArray ? (index != null ? index : this.items.indexOf(item)) : item[this.keyField]
-      return this.vscrollData.sizes[id] || 0
+    getItemPosition (index) {
+      return this.$refs.scroller.getItemPosition(index)
+    },
+
+    getOffset () {
+      return this.$refs.scroller.getOffset()
+    },
+
+    getClientSize () {
+      return this.$refs.scroller.getClientSize()
+    },
+
+    getScrollSize () {
+      return this.$refs.scroller.getScrollSize()
+    },
+
+    scrollInfo () {
+      return this.$refs.scroller.scrollInfo()
+    },
+
+    getItemSize (index) {
+      return this.$refs.scroller.getItemSize(index)
     },
 
     scrollToBottom () {
@@ -261,6 +267,36 @@ export default {
         requestAnimationFrame(cb)
       })
     },
+
+    pauseScrollInsert () {
+      return new Promise(resolve => {
+        const {scroller} = this.$refs
+        //
+        let index = scroller.$_startIndex || 0
+        let diff = 0
+        while (diff >= 0) {
+          let tmp = scroller.getOffset() - scroller.getItemPosition(index)
+          if (diff === tmp) {
+            break
+          }
+          diff = tmp
+          index++
+        }
+        const beforeLength = this.items.length
+        const keyValue = index < beforeLength ? this.items[index][this.keyField] : null
+        //
+        resolve()
+        //
+        requestAnimationFrame(_ => {
+          if (keyValue) {
+            index = this.items.findIndex(item => item[this.keyField] === keyValue) - 1
+          } else {
+            index += this.items.length - beforeLength
+          }
+          scroller.scrollToPosition(scroller.getItemPosition(Math.max(0, index)) + diff)
+        })
+      })
+    }
   },
 }
 </script>

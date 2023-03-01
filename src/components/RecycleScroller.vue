@@ -1,6 +1,7 @@
 <template>
   <div
     v-observe-visibility="handleVisibilityChange"
+    ref="root"
     class="vue-recycle-scroller"
     :class="{
       ready,
@@ -686,31 +687,6 @@ export default {
       this.listenerTarget = null
     },
 
-    getItemPosition(index) {
-      let scroll
-      if (this.itemSize === null) {
-        scroll = index > 0 ? this.sizes[index - 1].accumulator : 0
-      } else {
-        scroll = Math.floor(index / this.gridItems) * this.itemSize
-      }
-      if (this.pageMode) {
-        const direction = this.direction === 'vertical'
-          ? { scroll: 'scrollTop', start: 'top' }
-          : { scroll: 'scrollLeft', start: 'left' }
-
-        const viewportEl = ScrollParent(this.$el)
-        // HTML doesn't overflow like other elements
-        const scrollTop = viewportEl.tagName === 'HTML' ? 0 : viewportEl[direction.scroll]
-        const bounds = viewportEl.getBoundingClientRect()
-
-        const scroller = this.$el.getBoundingClientRect()
-        const scrollerPosition = scroller[direction.start] - bounds[direction.start]
-
-        return scroll + scrollTop + scrollerPosition
-      }
-      return scroll
-    },
-
     scrollToItem (index) {
       let scroll
       if (this.itemSize === null) {
@@ -749,6 +725,85 @@ export default {
       }
 
       viewport[scrollDirection] = scrollDistance
+    },
+
+    getItemPosition (index) {
+      let scroll
+      if (this.itemSize === null) {
+        scroll = index > 0 ? this.sizes[index - 1].accumulator : 0
+      } else {
+        scroll = Math.floor(index / this.gridItems) * this.itemSize
+      }
+      if (this.pageMode) {
+        const direction = this.direction === 'vertical'
+          ? { scroll: 'scrollTop', start: 'top' }
+          : { scroll: 'scrollLeft', start: 'left' }
+
+        const viewportEl = ScrollParent(this.$el)
+        // HTML doesn't overflow like other elements
+        const scrollTop = viewportEl.tagName === 'HTML' ? 0 : viewportEl[direction.scroll]
+        const bounds = viewportEl.getBoundingClientRect()
+
+        const scroller = this.$el.getBoundingClientRect()
+        const scrollerPosition = scroller[direction.start] - bounds[direction.start]
+
+        return scroll + scrollTop + scrollerPosition
+      }
+      return scroll
+    },
+
+    getItemSize (index) {
+      let size
+      if (this.itemSize === null) {
+        size = index > 0 ? this.sizes[index - 1].size : 0
+      } else {
+        size = this.itemSize
+      }
+      return size
+    },
+
+    // return current scroll offset
+    getOffset () {
+      const key = this.direction === 'horizontal' ? 'scrollLeft' : 'scrollTop'
+      if (this.pageMode) {
+        return document.documentElement[key] || document.body[key]
+      } else {
+          const {root} = this.$refs
+        return root ? Math.ceil(root[key]) : 0
+      }
+    },
+
+    // return client viewport size
+    getClientSize () {
+      const key = this.direction === 'horizontal' ? 'clientWidth' : 'clientHeight'
+      if (this.pageMode) {
+        return document.documentElement[key] || document.body[key]
+      } else {
+        const {root} = this.$refs
+        return root ? Math.ceil(root[key]) : 0
+      }
+    },
+
+    // return all scroll size
+    getScrollSize () {
+      const key = this.direction === 'horizontal' ? 'scrollWidth' : 'scrollHeight'
+      if (this.pageMode) {
+        return document.documentElement[key] || document.body[key]
+      } else {
+        const {root} = this.$refs
+        return root ? Math.ceil(root[key]) : 0
+      }
+    },
+
+    scrollInfo () {
+      const clientSize = this.getClientSize()
+      const offset = this.getOffset()
+      const scrollSize = this.getScrollSize()
+      return {
+        offset, // 滚动的距离
+        scale: offset ? (offset / (scrollSize - clientSize)) : 0, // 已滚动比例
+        tail: scrollSize - clientSize - offset // 与底部距离
+      }
     },
 
     itemsLimitError () {

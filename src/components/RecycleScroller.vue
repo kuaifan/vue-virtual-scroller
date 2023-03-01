@@ -687,12 +687,15 @@ export default {
       this.listenerTarget = null
     },
 
-    scrollToItem (index) {
+    scrollToItem (index, offset) {
       let scroll
       if (this.itemSize === null) {
         scroll = index > 0 ? this.sizes[index - 1].accumulator : 0
       } else {
         scroll = Math.floor(index / this.gridItems) * this.itemSize
+      }
+      if (typeof offset === "number") {
+        scroll += parseInt(offset)
       }
       this.scrollToPosition(scroll)
     },

@@ -1065,12 +1065,15 @@
         this.listenerTarget.removeEventListener('resize', this.handleResize);
         this.listenerTarget = null;
       },
-      scrollToItem(index) {
+      scrollToItem(index, offset) {
         let scroll;
         if (this.itemSize === null) {
           scroll = index > 0 ? this.sizes[index - 1].accumulator : 0;
         } else {
           scroll = Math.floor(index / this.gridItems) * this.itemSize;
+        }
+        if (typeof offset === "number") {
+          scroll += parseInt(offset);
         }
         this.scrollToPosition(scroll);
       },
@@ -1602,8 +1605,8 @@
           force: true
         });
       },
-      scrollToItem(index) {
-        this.$refs.scroller.scrollToItem(index);
+      scrollToItem(index, offset) {
+        this.$refs.scroller.scrollToItem(index, offset);
       },
       scrollToPosition(position) {
         this.$refs.scroller.scrollToPosition(position);
@@ -1654,10 +1657,11 @@
             scroller
           } = this.$refs;
           //
+          let offset = scroller.getOffset();
           let index = scroller.$_startIndex || 0;
           let diff = 0;
           while (diff >= 0) {
-            let tmp = scroller.getOffset() - scroller.getItemPosition(index);
+            let tmp = offset - scroller.getItemPosition(index);
             if (diff === tmp) {
               break;
             }
@@ -1670,7 +1674,8 @@
           const result = _ => {
             requestAnimationFrame(_ => {
               if (keyValue) {
-                index = this.items.findIndex(item => item[this.keyField] === keyValue) - 1;
+                index = this.items.findIndex(item => item[this.keyField] === keyValue);
+                if (offset > 0) index--;
               } else {
                 index += this.items.length - beforeLength;
               }

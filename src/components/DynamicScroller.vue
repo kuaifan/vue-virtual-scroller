@@ -213,8 +213,8 @@ export default {
       this.$emit('vscroll:update', { force: true })
     },
 
-    scrollToItem (index) {
-      this.$refs.scroller.scrollToItem(index)
+    scrollToItem (index, offset) {
+      this.$refs.scroller.scrollToItem(index, offset)
     },
 
     scrollToPosition (position) {
@@ -272,10 +272,11 @@ export default {
       return new Promise(resolve => {
         const {scroller} = this.$refs
         //
+        let offset = scroller.getOffset()
         let index = scroller.$_startIndex || 0
         let diff = 0
         while (diff >= 0) {
-          let tmp = scroller.getOffset() - scroller.getItemPosition(index)
+          let tmp = offset - scroller.getItemPosition(index)
           if (diff === tmp) {
             break
           }
@@ -288,7 +289,8 @@ export default {
         const result = _ => {
           requestAnimationFrame(_ => {
             if (keyValue) {
-              index = this.items.findIndex(item => item[this.keyField] === keyValue) - 1
+              index = this.items.findIndex(item => item[this.keyField] === keyValue)
+              if (offset > 0) index--
             } else {
               index += this.items.length - beforeLength
             }
